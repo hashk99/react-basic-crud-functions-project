@@ -1,0 +1,340 @@
+<!-- DOCTYPE HTML -->
+<html>
+
+	<head>
+		<title>My First React Project</title> 
+		<link rel="stylesheet" href="assets/css/base.css"> 
+	</head>
+
+	<body>
+
+		<div id="content"></div> 
+		<script src="https://fb.me/react-0.14.6.js"></script>
+		<script src="https://fb.me/react-dom-0.14.6.js"></script>
+		<script src="http://fb.me/JSXTransformer-0.12.1.js"></script> 
+		 
+
+		<script type="text/jsx">
+			 
+			/*Add your React code here*/
+
+			//save app configs
+			var APPDATA = {title : 'Users List', create_title : 'Create a user', edit_title : 'Edit a user'};
+			
+			//main component class
+			class App extends React.Component {
+				  
+				constructor(props, context) {
+					super(props, context);
+
+					var records_from_locallstorage = JSON.parse(localStorage.getItem('user_records'));  
+					this.state = {
+					  allRecords: records_from_locallstorage   
+					};  
+
+        			this.onUpdate=this.onUpdate.bind(this);
+				} 
+
+				//update users table
+				onUpdate (e) {
+					// get somehow new data
+					var records_from_locallstorage = JSON.parse(localStorage.getItem('user_records'));  
+					this.setState({
+					    allRecords: records_from_locallstorage
+					});
+				}
+
+			    render(){ 
+			        return (
+			            <div> 
+			                <UsersTable updateTable={this.onUpdate} getAllRecords={this.state.allRecords} appData={this.props.appData}   title={this.props.appData.title} /> 
+			            </div>
+			        );
+			        
+			    }
+			}
+  	
+  			//users table component
+			class UsersTable extends React.Component {
+				
+				constructor(props, context) {
+					super(props, context);
+					 
+					this.state = {
+					  showEditForm: false, //show edit form
+					  editObject: null, //store current edit user object
+					  userIndex: null,  //selected user index to update
+					};  
+
+        			this.deleteUser = this.deleteUser.bind(this); //delete user function
+        			this.editUser = this.editUser.bind(this); //edit user function
+        			this.updateUser = this.updateUser.bind(this); //update user function
+				}
+
+    			deleteUser (index) {
+    				var records_from_locallstorage = JSON.parse(localStorage.getItem('user_records'));  
+    				records_from_locallstorage.splice(index, 1);
+    				localStorage.setItem('user_records', JSON.stringify(records_from_locallstorage)); 
+					this.props.updateTable(); //call update users table view
+    			}
+				 
+    			editUser (index) {
+    				var records_from_locallstorage = JSON.parse(localStorage.getItem('user_records'));  
+    				var selected_object = records_from_locallstorage[index];
+    				if(selected_object != null){  
+			        	this.setState({ showEditForm: true, editObject: selected_object, userIndex: index });
+    				}
+					 
+    			}
+
+    			updateUser (index, updatedUser) {
+    				var records_from_locallstorage = JSON.parse(localStorage.getItem('user_records'));  
+    				records_from_locallstorage[index] = updatedUser;
+    				localStorage.setItem('user_records', JSON.stringify(records_from_locallstorage)); 
+    				this.setState({ showEditForm: false});
+					this.props.updateTable(); //call update users table view
+    			}
+
+			    render(){
+			    	
+			    	var user_records = this.props.getAllRecords; 
+			    	if(user_records != null && user_records.length > 0){
+			    	  	var records = user_records.map(function(user, index){ //set rows
+			           		return ( 
+				        		<tr key={index} >
+				        			<td>{user.name}</td>
+				        			<td>{user.age}</td>
+				        			<td>{user.nick_name}</td>
+				        			<td><button updateUser={this.updateUser} onClick={this.editUser.bind(this, index)} >Edit</button> <button onClick={this.deleteUser.bind(this, index)} >Delete</button></td>
+				        		</tr>
+			           		);
+			        	}.bind(this));
+			    	}else{
+			    		var records = '';
+			    	}
+			       
+			        return (
+			        	<div>
+				        	<h1>{this.props.title}</h1>
+				        	<table>
+				        		<thead> 
+				        			<tr>
+						        		<th>Name</th>
+						        		<th>Age</th>
+						        		<th>Nick name</th>
+						        		<th>Actions</th>
+					        		</tr>
+				        		</thead>
+					            <tbody>
+					            	{records}
+					            </tbody>
+				        	</table>
+							{ (this.state.showEditForm == true && this.state.editObject != null) ? <EditUser userIndex={this.state.userIndex} user={this.state.editObject} updateUser={this.updateUser} appData={this.props.appData} /> : null }
+			        		<ViewCreateButton updateTable={this.props.updateTable} getAllRecords={this.props.getAllRecords}  appData={this.props.appData} /> 
+			            </div>
+
+			        );
+			    }
+
+			}
+
+			//show create button 
+			class ViewCreateButton extends React.Component{
+				constructor(props, context) {
+					super(props, context);
+
+					this.state = {
+					  showCreate: false  //show create form
+					};
+        			this.onClick=this.onClick.bind(this); // toggle create form view
+				};
+			     
+			    onClick() {
+			        this.setState({ showCreate: (this.state.showCreate) ? false : true });
+			    }
+
+			    render() {
+			        return (
+			            <div id="createbtn-wrap">
+			                <input type="submit" value="Create User" onClick={this.onClick} />
+			                { this.state.showCreate ?  <CreateUser updateTable={this.props.updateTable} getAllRecords={this.props.getAllRecords}  appData={this.props.appData} />  : null }
+			            </div>
+			        );
+			    }
+
+			} 
+ 	
+ 			//edit form component
+			class EditUser extends React.Component{
+				
+				constructor(props, context) {
+					super(props, context);
+ 
+        			this.handleChange=this.handleChange.bind(this); //handle form change
+        			this.handleSubmitForm=this.handleSubmitForm.bind(this); //submit updated user
+ 					
+ 					this.state = { 
+						formValues: this.props.user //get selected user object
+					};
+				} 
+
+				//update selected user object when button click again
+				componentWillUpdate(nextProps, nextState) { 
+			   		nextState.formValues = nextProps.user;
+			  	}
+				  
+				  
+		        handleChange(event) {
+			        event.preventDefault();
+			        let formValues = this.state.formValues;
+			        let name = event.target.name;
+			        let value = event.target.value;
+
+			        formValues[name] = value;
+
+			        this.setState({formValues})
+			    }
+ 
+ 
+		        /* HANDLE USER STORE FORM SUBMIT FUNCTION */ 
+		     	handleSubmitForm(event) {
+					event.preventDefault();  
+					this.props.updateUser(this.props.userIndex, this.state.formValues);//call parent update user function  
+				} 
+
+ 				render(){
+			   		var agelist_array = [1,2,3,4,5,6,7,8,9,10]; 
+		   			var ageList =  agelist_array.map(function(age, index){
+			      		return (
+		        			<option key={index} value={age}>{age}</option>
+		           		);
+			        });
+				 
+			        return (
+			        	<div id="editform-wrap">
+			        	 	<hr/>
+				        	<h3>{this.props.appData.edit_title}</h3>
+				        	<form idname="xyz" onSubmit={this.handleSubmitForm}>
+							  <label>
+							    Name:
+							    <input type="text" name="name" value={this.state.formValues["name"]}  placeholder="Name here"  onChange={this.handleChange.bind(this)}  />
+							  </label>
+							  <label>
+							    Age :
+							    <select name="age" value={this.state.formValues["age"]} onChange={this.handleChange.bind(this)}  >
+							    	{ageList}
+							    </select>
+							  </label>
+							  <label>
+							    Nick name:
+							    <input type="text" name="nick_name" value={this.state.formValues["nick_name"]} placeholder="Nick name here" onChange={this.handleChange.bind(this)}  />
+							  </label>
+							  <input type="submit"  value="Update"  />
+							</form>
+			            </div>
+			        );
+			    } 
+
+			} 
+
+			//create user form
+			class CreateUser extends React.Component{
+				
+				constructor(props, context) {
+					super(props, context);
+
+					this.state = {
+					  name: 'default name', 
+					  age: 3,
+					  nick_name: 'default nick name',
+					};
+        			this.handleNameChange=this.handleNameChange.bind(this);
+        			this.handleAgeChange=this.handleAgeChange.bind(this);
+        			this.handleNicknameChange=this.handleNicknameChange.bind(this);
+        			this.handleSubmitForm=this.handleSubmitForm.bind(this);
+
+				} 
+			 
+				  
+				/* DECLARE FUNCTIONS TO USE FROM OUTSIDE THE COMPONENT */ 
+				  
+				handleNameChange(e) {
+				   this.setState({name: e.target.value});
+				} 
+
+				handleAgeChange(e) {
+				   this.setState({age: e.target.value});
+				}
+
+				handleNicknameChange(e) {
+				   this.setState({nick_name: e.target.value});
+				}
+
+		        /* HANDLE USER STORE FORM SUBMIT FUNCTION */ 
+		     	handleSubmitForm(event) {
+					event.preventDefault();
+					  
+				    var userObject = { 'name':  this.state.name, 'nick_name': this.state.nick_name, 'age': this.state.age };
+
+					// Put the object into storage
+					var records_from_locallstorage =  this.props.getAllRecords;
+					  
+					if(records_from_locallstorage != null && records_from_locallstorage.length > 0){
+						records_from_locallstorage.push(userObject);
+						localStorage.setItem('user_records', JSON.stringify(records_from_locallstorage));
+						  
+					}else{
+						var users = [];
+						users.push(userObject);
+						localStorage.setItem('user_records', JSON.stringify(users));
+						 
+					}
+					 
+					this.props.updateTable();
+
+					this.setState({name:'',age:1,nick_name:''});//set defaults after submit
+				} 
+
+ 				render(){
+			   		var agelist_array = [1,2,3,4,5,6,7,8,9,10]; 
+		   			var ageList =  agelist_array.map(function(age, index){
+			      		return (
+		        			<option key={index} value={age}>{age}</option>
+		           		);
+			        });
+				 
+			        return (
+			        	<div>
+			        	 	<hr/>
+				        	<h3>{this.props.appData.create_title}</h3>
+				        	<form idname="abc" onSubmit={this.handleSubmitForm}>
+							  <label>
+							    Name:
+							    <input type="text" name="name" value={this.state.name}  placeholder="Name here"  onChange={this.handleNameChange}  />
+							  </label>
+							  <label>
+							    Age :
+							    <select name="age" value={this.state.age} onChange={this.handleAgeChange}  >
+							    	{ageList}
+							    </select>
+							  </label>
+							  <label>
+							    Nick name:
+							    <input type="text" name="nick_name" value={this.state.nick_name} placeholder="Nick name here" onChange={this.handleNicknameChange}  />
+							  </label>
+							  <input type="submit"  value="Submit"  />
+							</form>
+			            </div>
+			        );
+			    } 
+
+			} 
+ 
+			ReactDOM.render(<App appData={APPDATA} />, document.getElementById('content'));
+ 
+
+		</script>
+		 
+	</body>
+
+</html>
